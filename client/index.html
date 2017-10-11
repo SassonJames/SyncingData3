@@ -2,12 +2,86 @@
 <html lang="en">
 <head>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script type="text/babel" >
         "use strict";
-    
+        
+        let canvas;
+        let ctx;
+        let socket;
+        let randColor;
+        let drawStack = [];
+
+        let square = {
+            updateTime: new Date().getTime(),
+            x: 0,
+            y: 0,
+            height: 100,
+            width: 100,
+            color: '#000000'
+        };
+
+        const makeSquare = (evt) => {
+            let mousePos = getMousePos(evt);
+            square.x = mousePos.x - square.width/2;
+            square.y = mousePos.y - square.height/2;
+            square.color = randColor;
+            socket.emit('newsquare', square);
+        };
+        
+        const getMousePos = (evt) => {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        };
+
+        const draw = () => {
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+            let keys = Object.keys(drawStack);
+            for(let i=0; i < keys.length; i++){
+                const drawCall = drawStack[keys[i]];
+                ctx.fillStyle = drawCall.color;
+                ctx.fillRect(drawCall.x, drawCall.y, drawCall.width, drawCall.height);
+            }
+        };
+        
+        const updateDrawstack = (data) => {
+              drawStack = data;
+              draw();
+        };
+
+        const init = () => {
+            canvas = document.querySelector("#canvas");
+            ctx = canvas.getContext("2d");
+            randColor = '#';
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for(var i = 0; i < 6; i++){
+                randColor += letters[Math.floor(Math.random() * 16)];
+            }
+            
+            square.color = randColor;
+            
+            canvas.addEventListener("mouseup", function(evt){
+                makeSquare(evt);
+            });
+            
+            socket = io.connect();
+            
+            socket.on('connect', function () {
+                socket.emit('join', square);
+            });
+            
+            socket.on('updateDraw', updateDrawstack);
+        };
+
+        window.onload = init;
+        
     </script>
 </head>
 <body>
-
+    <canvas = id="canvas" height="1000" width="1000">Why are you not using HTML5?</canvas>
 </body>
 </html>

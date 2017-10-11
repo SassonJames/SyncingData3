@@ -1,0 +1,28 @@
+{
+  "name": "canvas-syncing-assignment-part3",
+  "version": "1.0.0",
+  "description": "'Syncing Data Assignment part 3'",
+  "main": "./src/server.js",
+  "scripts": {
+      "start": "node ./src/server.js",
+    "test": "echo \"No Tests\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SassonJames/canvas-syncing-assignment-part3.git"
+  },
+  "author": "Jamie Sasson",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/SassonJames/canvas-syncing-assignment-part3/issues"
+  },
+  "homepage": "https://github.com/SassonJames/canvas-syncing-assignment-part3#readme",
+  "dependencies": {
+    "socket.io": "^2.0.3"
+  },
+  "devDependencies": {
+    "eslint": "^4.8.0",
+    "eslint-config-airbnb": "^16.0.0",
+    "eslint-plugin-import": "^2.7.0"
+  }
+}
