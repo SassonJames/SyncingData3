@@ -1,22 +1,27 @@
 {
   "name": "canvas-syncing-assignment-part3",
   "version": "1.0.0",
-  "description": "'Syncing Data Assignment part 3'",
+  "engines": {
+      "node": "8.4.0",
+      "npm": "5.3.0"
+    },
+  "description": "'Syncing Data 3'",
   "main": "./src/server.js",
   "scripts": {
-      "start": "node ./src/server.js",
+    "start": "node ./src/server.js",
+    "pretest": "eslint ./src --fix",
     "test": "echo \"No Tests\""
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SassonJames/canvas-syncing-assignment-part3.git"
+    "url": "git+https://github.com/SassonJames/SyncingData3.git"
   },
   "author": "Jamie Sasson",
   "license": "UNLICENSED",
   "bugs": {
-    "url": "https://github.com/SassonJames/canvas-syncing-assignment-part3/issues"
+    "url": "https://github.com/SassonJames/SyncingData3/issues"
   },
-  "homepage": "https://github.com/SassonJames/canvas-syncing-assignment-part3#readme",
+  "homepage": "https://github.com/SassonJames/SyncingData3.git#readme",
   "dependencies": {
     "socket.io": "^2.0.3"
   },
