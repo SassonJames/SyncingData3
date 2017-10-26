@@ -9,7 +9,8 @@ let socket; //this user's socket
 let hash; //this user's personal object id
 
 let isFalling; //variable to keep track if player in air **PREVENTS DOUBLE JUMP**
-let currentGrav; //keeps track of acceleration of gravity
+
+let currentGravMult; //keeps track of acceleration of gravity **Multiplier to be passed                      //into gravity function in server**
 
 //directional constants for which directions a user sprite could be facing.
 const directions = {
@@ -260,21 +261,12 @@ const keyUpHandler = (e) => {
     }    
 };
 
-const applyGravity = (gravLevel) => {
+const updateGravity = (serverData) => {
     const square = squares[hash];
-    currentGrav += gravLevel;
-    if(currentGrav >= 15){
-        currentGrav = 15;
-    }
     
-    if(square.destY < 379){
-        square.destY += currentGrav;
-    }
-    else{
-        square.destY == 379;
-        currentGrav = 0;
-        isFalling = false;
-    }
+    square.destY = serverData.newDest;           // Updates lerp with gravity applied
+    currentGravMult = serverData.gravMultiplier; // Ticks up the acceleration
+    isFalling = serverData.falling;              // Is the user still falling?
 };
 
 const init = () => {
@@ -283,7 +275,7 @@ const init = () => {
 	ctx = canvas.getContext('2d');
     
     isFalling = true;
-    currentGrav = 0;
+    currentGravMult = 0;
 
 	socket = io.connect();
 	
@@ -304,8 +296,16 @@ const init = () => {
     
     //when recieving a gravity update from the server
     //apply gravity to the user
-    socket.on('gravityTick', function(data){
-        applyGravity(data);
+    socket.on('gravityTick', function(){
+        const message = {
+            square: squares[hash],
+            gravMult: currentGravMult
+        };
+        socket.emit('calculateGravity', message);
+    });
+    
+    socket.on('gravUpdate', function(data){
+        updateGravity(data);
     });
   
 	//key listeners

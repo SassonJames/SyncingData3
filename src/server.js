@@ -37,6 +37,9 @@ const app = http.createServer(handler);
 
 const io = socketio(app);
 
+// Applies gravity to clients
+const GRAVITY = 3;
+
 // start listening
 app.listen(PORT);
 
@@ -77,6 +80,35 @@ io.on('connection', (sock) => {
     socket.broadcast.to('room1').emit('updatedMovement', socket.square);
   });
 
+  socket.on('calculateGravity', (data) => {
+    const gravityMult = data.gravMult + 1;
+
+    let gravApplied = gravityMult * GRAVITY;
+    let squareDest = data.square.destY;
+
+    if (gravApplied >= 15) {
+      gravApplied = 15;
+    }
+
+    if (squareDest < 379) {
+      squareDest += gravApplied;
+      const message = {
+        newDest: squareDest,
+        gravMultiplier: gravityMult,
+        falling: true,
+      };
+      socket.emit('gravUpdate', message);
+    } else {
+      squareDest = 379;
+      const message = {
+        newDest: squareDest,
+        gravMultiplier: 0,
+        falling: false,
+      };
+      socket.emit('gravUpdate', message);
+    }
+  });
+
   // when a user disconnects, we want to make sure we let everyone know
   // and ask them to remove the object
   socket.on('disconnect', () => {
@@ -86,7 +118,7 @@ io.on('connection', (sock) => {
 });
 
 const gravity = () => {
-  io.sockets.in('room1').emit('gravityTick', 3);
+  io.sockets.in('room1').emit('gravityTick');
 };
 
 setInterval(gravity, 100);
