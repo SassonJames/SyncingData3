@@ -1,51 +1,92 @@
 const http = require('http');
-const fs = require('fs');
 const socketio = require('socket.io');
+const fs = require('fs');
+const xxh = require('xxhashjs');
 
-const port = process.env.PORT || process.env.NODE_PORT || 3000;
+const walkImage = fs.readFileSync(`${__dirname}/../hosted/walk.png`);
 
-// read the client html file into memory
-const index = fs.readFileSync(`${__dirname}/../client/index.html`);
+const PORT = process.env.PORT || process.env.NODE_PORT || 3000;
 
-const onRequest = (request, response) => {
-  response.writeHead(200, { 'Content-Type': 'text/html'});
-  response.write(index);
-  response.end();
+const handler = (req, res) => {
+  if (req.url === '/walk.png') {
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(walkImage);
+  } else if (req.url === '/bundle.js') {
+    fs.readFile(`${__dirname}/../hosted/bundle.js`, (err, data) => {
+      // if err, throw it for now
+      if (err) {
+        throw err;
+      }
+      res.writeHead(200);
+      res.end(data);
+    });
+  } else {
+    fs.readFile(`${__dirname}/../hosted/index.html`, (err, data) => {
+      // if err, throw it for now
+      if (err) {
+        throw err;
+      }
+      res.writeHead(200);
+      res.end(data);
+    });
+  }
 };
 
-const app = http.createServer(onRequest).listen(port);
+// start http server and get HTTP server instance
+const app = http.createServer(handler);
 
-// io Server
 const io = socketio(app);
 
-// keep track of users squares
-usersquares = {};
+// start listening
+app.listen(PORT);
 
-io.on('connection', (socket) => {
-   // Join the Room
-   socket.join('room1');
-    
-    socket.on("join", (data) => {
-       socket.color = data.color; 
-       usersquares[data.color] = data;
-       io.sockets.in('room1').emit('updateDraw', usersquares);
-    });
-   
-   // When they update their square's position, redraw it
-   socket.on('newsquare', (data) => {
-        usersquares[data.color].x = data.x;
-        usersquares[data.color].y = data.y;
-        io.sockets.in('room1').emit('updateDraw', usersquares);
-      
-   });
-   
-   // When they disconnect, leave the room
-   socket.on('disconnect', () => {
-      socket.leave('room1'); 
-      delete usersquares[socket.color];
-       io.sockets.in('room1').emit('updateDraw', usersquares);
-   });
-    
-    // broadcast the current drawstack
-    socket.emit('updateDraw', usersquares);
+// for each new socket connection
+io.on('connection', (sock) => {
+  const socket = sock;
+
+  // app users in room1
+  socket.join('room1');
+
+  socket.square = {
+    hash: xxh.h32(`${socket.id}${Date.now()}`, 0xDEADBEEF).toString(16),
+    lastUpdate: new Date().getTime(), // last time this object was updated
+    x: 0, // default x value of this square
+    y: 0, // default y value of this square
+    prevX: 0, // default y value of the last known position
+    prevY: 0, // default x value of the last known position
+    destX: 0, // default x value of the desired next x position
+    destY: 0, // default y value of the desired next y position
+    alpha: 0, // default alpha (how far this object is % from prev to dest)
+    height: 121, // height of our sprites
+    width: 61, // width of our sprites
+    direction: 0,
+    frame: 0, // which frame of animation we are on in the spritesheet
+    frameCount: 0,
+    moveLeft: false, // is user moving left
+    moveRight: false, // is user moving right
+    moveDown: false, // is user moving down
+    moveUp: false, // is user moving up
+  };
+
+  socket.emit('joined', socket.square);
+
+  // when we receive a movement update from the client
+  socket.on('movementUpdate', (data) => {
+    socket.square = data;
+    socket.square.lastUpdate = new Date().getTime();
+    socket.broadcast.to('room1').emit('updatedMovement', socket.square);
+  });
+
+  // when a user disconnects, we want to make sure we let everyone know
+  // and ask them to remove the object
+  socket.on('disconnect', () => {
+    io.sockets.in('room1').emit('left', socket.square.hash);
+    socket.leave('room1');
+  });
 });
+
+const gravity = () => {
+  io.sockets.in('room1').emit('gravityTick', 3);
+};
+
+setInterval(gravity, 100);
